@@ -1,5 +1,9 @@
 #include <Arduino.h>
 
+int currentMotor1Speed = 0;
+int currentMotor2Speed = 0;
+
+#pragma region Konstanten
 #define MOTOR1_SPEED 6
 #define MOTOR2_SPEED 5
 #define MOTOR1_INPUT1 9
@@ -10,8 +14,10 @@
 #define USS_ECHO 12
 #define STATUS_LED 13
 
-#define MOTOR_DEFAULT_SPEED 190
-#define MOTOR_SLOW_SPEED 120
+#define BUZZER A0
+
+#define MOTOR_DEFAULT_SPEED 170
+#define MOTOR_SLOW_SPEED 110
 #define MOTOR_FAST_SPEED 230
 
 #define DISTANCE_STOP 15
@@ -20,10 +26,9 @@
 #define TURN_TIME 240
 #define WAIT_AFTER_TURN 500
 #define WAIT_AFTER_GO 250
+#pragma endregion
 
-int currentMotor1Speed = 0;
-int currentMotor2Speed = 0;
-
+#pragma region Funktionsdeklarationen
 // Motor 1 = Links
 // Motor 2 = Rechts
 void motor1Forward();
@@ -35,8 +40,8 @@ void motor2Stop();
 void motor1Speed(int speed);
 void motor2Speed(int speed);
 float getDistanceInCm();
-void goForwardsFor(int milliseconds);
-void goBackwardsFor(int milliseconds);
+void goForwardsFor(int milliseconds, int desiredSpeed);
+void goBackwardsFor(int milliseconds, int desiredSpeed);
 void comeToAStop();
 void turnLeftFor(int milliseconds);
 void turnRightFor(int milliseconds);
@@ -44,6 +49,10 @@ void findFreeDirection();
 void statusLed(int status);
 void autoSpeed(int speed);
 void returnToDefaultSpeed();
+void playTone(int freq, int duration);
+void autoForward();
+void autoBackward();
+#pragma endregion
 
 void flow1();
 
@@ -72,14 +81,18 @@ void loop() {
 void flow1() {
   float distance = getDistanceInCm();
   if (distance > DISTANCE_STOP) {
-    motor1Forward();
-    motor2Forward();
-    autoSpeed(MOTOR_FAST_SPEED);
+    autoForward();
+    autoSpeed(MOTOR_DEFAULT_SPEED);
   } else {
     statusLed(1);
     comeToAStop();
+    playTone(900, 300);
+    delay(100);
+    playTone(900, 300);
+    delay(100);
+    playTone(900, 300);
 
-    goBackwardsFor(200);
+    goBackwardsFor(400, MOTOR_SLOW_SPEED);
     findFreeDirection();
     statusLed(0);
   }
@@ -127,6 +140,18 @@ void autoSpeed(int speed) {
   motor2Speed(speed);
 }
 
+// Fährt vorwärts
+void autoForward() {
+  motor1Forward();
+  motor2Forward();
+}
+
+// Fährt rückwärts
+void autoBackward() {
+  motor1Backward();
+  motor2Backward();
+}
+
 void motor1Speed(int speed) {
   if (speed != currentMotor1Speed) {
     currentMotor1Speed = speed;
@@ -161,27 +186,21 @@ float getDistanceInCm() {
 }
 
 // Fährt für eine bestimmte Zeit vorwärts
-void goForwardsFor(int milliseconds) {
-  motor1Forward();
-  motor2Forward();
-  motor1Speed(255);
-  motor2Speed(255);
+void goForwardsFor(int milliseconds, int desiredSpeed) {
+  autoSpeed(desiredSpeed);
+  autoForward();
   delay(milliseconds);
-  motor1Stop();
-  motor2Stop();
+  comeToAStop();
 
   returnToDefaultSpeed();
 }
 
 // Fährt für eine bestimmte Zeit rückwärts
-void goBackwardsFor(int milliseconds) {
-  autoSpeed(130);
-  motor1Backward();
-  motor2Backward();
-
+void goBackwardsFor(int milliseconds, int desiredSpeed) {
+  autoSpeed(desiredSpeed);
+  autoBackward();
   delay(milliseconds);
-  motor1Stop();
-  motor2Stop();
+  comeToAStop();
 
   returnToDefaultSpeed();
 }
@@ -226,6 +245,7 @@ void findFreeDirection() {
   int enoughSpaceCounter = 0;
 
   while (!foundFreeDirection) {
+    delay(50);
     distance = getDistanceInCm();
 
     if (distance > DISTANCE_GOAGAIN) {
@@ -234,16 +254,24 @@ void findFreeDirection() {
       enoughSpaceCounter = 0;
     }
 
-    if (enoughSpaceCounter > 3) {
+    if (enoughSpaceCounter > 2) {
       foundFreeDirection = true;
     } else {
-      turnLeftFor(200, 200);
+      turnLeftFor(130, 255);
     }
 
     delay(100);
   }
 }
 
+// weiße led auf dem arduino
 void statusLed(int status) {
   digitalWrite(STATUS_LED, status);
+}
+
+// buzzer
+void playTone(int freq, int duration) {
+  tone(BUZZER, freq);
+  delay(duration);
+  noTone(BUZZER);
 }
