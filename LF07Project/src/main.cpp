@@ -61,7 +61,11 @@ void setup() {
 }
 
 void loop() {
-  flow1();
+  statusLed(1);
+  delay(2000);
+  statusLed(0);
+  delay(2000);
+  // flow1();
 }
 
 void flow1() {
