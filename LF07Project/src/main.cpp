@@ -8,12 +8,14 @@
 #define MOTOR2_INPUT2 8
 #define USS_TRIGGER 11
 #define USS_ECHO 12
-
 #define STATUS_LED 13
 
-#define DISTANCE_WARNING 30
-#define DISTANCE_STOP 10
-#define DISTANCE_GOAGAIN 18
+#define MOTOR_DEFAULT_SPEED 190
+#define MOTOR_SLOW_SPEED 120
+#define MOTOR_FAST_SPEED 230
+
+#define DISTANCE_STOP 15
+#define DISTANCE_GOAGAIN 20
 
 #define TURN_TIME 240
 #define WAIT_AFTER_TURN 500
@@ -33,7 +35,6 @@ void motor2Stop();
 void motor1Speed(int speed);
 void motor2Speed(int speed);
 float getDistanceInCm();
-void turn90DegreesLeft();
 void goForwardsFor(int milliseconds);
 void goBackwardsFor(int milliseconds);
 void comeToAStop();
@@ -41,6 +42,8 @@ void turnLeftFor(int milliseconds);
 void turnRightFor(int milliseconds);
 void findFreeDirection();
 void statusLed(int status);
+void autoSpeed(int speed);
+void returnToDefaultSpeed();
 
 void flow1();
 
@@ -57,8 +60,8 @@ void setup() {
   pinMode(USS_TRIGGER, OUTPUT);
   pinMode(USS_ECHO, INPUT);
 
-  motor1Speed(255);
-  motor2Speed(255);
+  motor1Speed(MOTOR_DEFAULT_SPEED);
+  motor2Speed(MOTOR_DEFAULT_SPEED);
 }
 
 void loop() {
@@ -71,13 +74,12 @@ void flow1() {
   if (distance > DISTANCE_STOP) {
     motor1Forward();
     motor2Forward();
-    motor1Speed(255);
-    motor2Speed(255);
+    autoSpeed(MOTOR_FAST_SPEED);
   } else {
     statusLed(1);
     comeToAStop();
 
-    goBackwardsFor(500);
+    goBackwardsFor(200);
     findFreeDirection();
     statusLed(0);
   }
@@ -120,6 +122,11 @@ void motor2Stop() {
   digitalWrite(MOTOR2_INPUT2, LOW);
 }
 
+void autoSpeed(int speed) {
+  motor1Speed(speed);
+  motor2Speed(speed);
+}
+
 void motor1Speed(int speed) {
   if (speed != currentMotor1Speed) {
     currentMotor1Speed = speed;
@@ -134,6 +141,11 @@ void motor2Speed(int speed) {
   }
 }
 
+void returnToDefaultSpeed() {
+  motor1Speed(MOTOR_DEFAULT_SPEED);
+  motor2Speed(MOTOR_DEFAULT_SPEED);
+}
+
 // Gibt die Entfernung in cm zurück
 float getDistanceInCm() {
   digitalWrite(USS_TRIGGER, LOW);
@@ -143,21 +155,9 @@ float getDistanceInCm() {
   digitalWrite(USS_TRIGGER, LOW);
 
   float duration = pulseIn(USS_ECHO, HIGH);
-  float distance = duration * 0.034 / 2;
+  float distance = ( duration / 29 ) / 2;
 
   return distance;
-}
-
-
-// Dreht sich um 90 Grad nach links
-void turn90DegreesLeft() {
-  motor1Backward();
-  motor2Forward();
-  motor1Speed(255);
-  motor2Speed(255);
-  delay(TURN_TIME);
-  motor1Stop();
-  motor2Stop();
 }
 
 // Fährt für eine bestimmte Zeit vorwärts
@@ -169,47 +169,54 @@ void goForwardsFor(int milliseconds) {
   delay(milliseconds);
   motor1Stop();
   motor2Stop();
+
+  returnToDefaultSpeed();
 }
 
 // Fährt für eine bestimmte Zeit rückwärts
 void goBackwardsFor(int milliseconds) {
+  autoSpeed(130);
   motor1Backward();
   motor2Backward();
-  motor1Speed(255);
-  motor2Speed(255);
+
   delay(milliseconds);
   motor1Stop();
   motor2Stop();
+
+  returnToDefaultSpeed();
 }
 
 // Stoppt das Auto
 void comeToAStop() {
+  int halfSpeed = MOTOR_DEFAULT_SPEED / 2;
+  autoSpeed(halfSpeed);
+  delay(200);
   motor1Stop();
   motor2Stop();
 }
 
 // Dreht sich für eine bestimmte Zeit nach links
-void turnLeftFor(int milliseconds) {
-  motor1Speed(255);
-  motor2Speed(255);
+void turnLeftFor(int milliseconds, int desiredSpeed) {
+  autoSpeed(desiredSpeed);
   motor1Backward();
   motor2Forward();
   delay(milliseconds);
   motor1Stop();
   motor2Stop();
+
+  returnToDefaultSpeed();
 }
 
 // Dreht sich für eine bestimmte Zeit nach rechts
-void turnRightFor(int milliseconds) {
-  motor1Speed(160);
-  motor2Speed(160);
+void turnRightFor(int milliseconds, int desiredSpeed) {
+  autoSpeed(desiredSpeed);
   motor1Forward();
   motor2Backward();
   delay(milliseconds);
   motor1Stop();
   motor2Stop();
-  motor1Speed(255);
-  motor2Speed(255);
+
+  returnToDefaultSpeed();
 }
 
 // Dreht sich nach links, bis es wieder genug Platz hat
@@ -230,10 +237,10 @@ void findFreeDirection() {
     if (enoughSpaceCounter > 3) {
       foundFreeDirection = true;
     } else {
-      turnLeftFor(250);
+      turnLeftFor(200, 200);
     }
 
-    delay(200);
+    delay(100);
   }
 }
 
