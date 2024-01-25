@@ -18,6 +18,7 @@ int currentMotor2Speed = 0;
 #define STATUS_LED_BLUE 9
 
 #define BUZZER A0
+#define START_BUTTON A5
 
 #define MOTOR_DEFAULT_SPEED 170
 #define MOTOR_SLOW_SPEED 110
@@ -57,12 +58,15 @@ void autoForward();
 void autoBackward();
 void stopTone();
 void flow1();
+void waitForStartButton();
 #pragma endregion
 
 void setup() {
   pinMode(STATUS_LED_RED, OUTPUT);
   pinMode(STATUS_LED_GREEN, OUTPUT);
   pinMode(STATUS_LED_BLUE, OUTPUT);
+
+  pinMode(START_BUTTON, INPUT_PULLUP);
 
   pinMode(MOTOR1_SPEED, OUTPUT);
   pinMode(MOTOR2_SPEED, OUTPUT);
@@ -76,12 +80,12 @@ void setup() {
 
   motor1Speed(MOTOR_DEFAULT_SPEED);
   motor2Speed(MOTOR_DEFAULT_SPEED);
+
+  waitForStartButton();
 }
 
 void loop() {
-  // flow1();
-  motor1Speed(255);
-  motor1Forward();
+  flow1();
 }
 
 // Ablaufversuch 1
@@ -286,6 +290,7 @@ void findFreeDirection() {
 // 2 = grün
 // 3 = blau
 // 4 = orange
+// 5 = lila
 void statusLed(int status) {
   #define BRIGHT 255
   #define MEDIUM 150
@@ -321,6 +326,12 @@ void statusLed(int status) {
       analogWrite(STATUS_LED_GREEN, DIM);
       analogWrite(STATUS_LED_BLUE, LOW);
       break;
+
+    case 5:
+      analogWrite(STATUS_LED_RED, BRIGHT);
+      analogWrite(STATUS_LED_GREEN, LOW);
+      analogWrite(STATUS_LED_BLUE, MEDIUM);
+      break;
     
   }
 }
@@ -332,8 +343,22 @@ void playTone(int freq, int duration) {
   noTone(BUZZER);
 }
 
+// ton, wenn das auto stehen bleibt
 void stopTone() {
   playTone(900, 200);
   delay(100);
   playTone(600, 150);
+}
+
+void waitForStartButton() {
+  bool startButtonPressed = false;
+
+  // lila status led = warte auf start button
+  statusLed(5);
+  while (!startButtonPressed) {
+    if (digitalRead(START_BUTTON) == LOW) {
+      startButtonPressed = true;
+    }
+  }
+  statusLed(0);
 }
