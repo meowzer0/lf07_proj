@@ -49,8 +49,6 @@ void findFreeDirection();
 void flow1();
 
 void setup() {
-  // Serial.begin(9600);
-
   pinMode(LED_SIGNALRED, OUTPUT);
   pinMode(LED_SIGNALYELLOW, OUTPUT);
   pinMode(LED_SIGNALGREEN, OUTPUT);
@@ -75,15 +73,12 @@ void loop() {
 
 void flow1() {
   float distance = getDistanceInCm();
-  // Serial.println(distance);
   if (distance > DISTANCE_STOP) {
     motor1Forward();
     motor2Forward();
     motor1Speed(255);
     motor2Speed(255);
-  }
-  else
-  {
+  } else {
     comeToAStop();
 
     goBackwardsFor(500);
@@ -254,15 +249,21 @@ void turnRightFor(int milliseconds) {
 void findFreeDirection() {
   bool foundFreeDirection = false;
   float distance = 0.0;
+  int enoughSpaceCounter = 0;
 
   while (!foundFreeDirection) {
     distance = getAcurateDistanceInCm();
 
     if (distance > DISTANCE_WARNING) {
-      foundFreeDirection = true;
+      enoughSpaceCounter++;
+    } else {
+      enoughSpaceCounter = 0;
     }
-    else {
-      turnLeftFor(200);
+
+    if (enoughSpaceCounter > 3) {
+      foundFreeDirection = true;
+    } else {
+      turnLeftFor(250);
     }
 
     delay(200);
