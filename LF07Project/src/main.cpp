@@ -1,11 +1,11 @@
 #include <Arduino.h>
 
-#define MOTOR1_SPEED 5
-#define MOTOR2_SPEED 6
-#define MOTOR1_INPUT1 7
-#define MOTOR1_INPUT2 8
-#define MOTOR2_INPUT1 9
-#define MOTOR2_INPUT2 10
+#define MOTOR1_SPEED 6
+#define MOTOR2_SPEED 5
+#define MOTOR1_INPUT1 9
+#define MOTOR1_INPUT2 10
+#define MOTOR2_INPUT1 7
+#define MOTOR2_INPUT2 8
 
 #define LED_SIGNALRED 2
 #define LED_SIGNALYELLOW 3
@@ -15,9 +15,14 @@
 #define USS_ECHO 12
 
 #define DISTANCE_WARNING 30
-#define DISTANCE_STOP 15
+#define DISTANCE_STOP 10
 
-#define TURN_TIME 400
+#define TURN_TIME 240
+#define WAIT_AFTER_TURN 500
+#define WAIT_AFTER_GO 250
+
+int currentMotor1Speed = 0;
+int currentMotor2Speed = 0;
 
 // Motor 1 = Links
 // Motor 2 = Rechts
@@ -34,6 +39,11 @@ void setSignalYellow();
 void setSignalGreen();
 float getDistanceInCm();
 void turn90DegreesLeft();
+void goForwardsFor(int milliseconds);
+void goBackwardsFor(int milliseconds);
+void comeToAStop();
+
+void flow1();
 
 void setup() {
   Serial.begin(9600);
@@ -57,7 +67,11 @@ void setup() {
 }
 
 void loop() {
-  float distance = getDistanceInCm();
+  flow1();
+}
+
+void flow1() {
+ float distance = getDistanceInCm();
   Serial.println(distance);
   if (distance > DISTANCE_STOP) {
     motor1Forward();
@@ -67,10 +81,9 @@ void loop() {
   }
   else
   {
-    motor1Stop();
-    motor2Stop();
+    comeToAStop();
 
-    turn90DegreesLeft();
+    findFreeDirection();
   }
 
   // Ampel
@@ -86,8 +99,6 @@ void loop() {
   {
     setSignalRed();
   }
-
-  delay(50);
 }
 
 void motor1Forward() {
@@ -121,11 +132,17 @@ void motor2Stop() {
 }
 
 void motor1Speed(int speed) {
-  analogWrite(MOTOR1_SPEED, speed);
+  if (speed != currentMotor1Speed) {
+    currentMotor1Speed = speed;
+    analogWrite(MOTOR1_SPEED, speed);
+  }
 }
 
 void motor2Speed(int speed) {
-  analogWrite(MOTOR2_SPEED, speed);
+  if (speed != currentMotor2Speed) {
+    currentMotor2Speed = speed;
+    analogWrite(MOTOR2_SPEED, speed);
+  }
 }
 
 float getDistanceInCm() {
@@ -167,5 +184,61 @@ void turn90DegreesLeft() {
   delay(TURN_TIME);
   motor1Stop();
   motor2Stop();
-  delay(1000);
+}
+
+void goForwardsFor(int milliseconds) {
+  motor1Forward();
+  motor2Forward();
+  motor1Speed(255);
+  motor2Speed(255);
+  delay(milliseconds);
+  motor1Stop();
+  motor2Stop();
+}
+
+void goBackwardsFor(int milliseconds) {
+  motor1Backward();
+  motor2Backward();
+  motor1Speed(255);
+  motor2Speed(255);
+  delay(milliseconds);
+  motor1Stop();
+  motor2Stop();
+}
+
+void comeToAStop() {
+  motor1Speed(128);
+  motor2Speed(128);
+  delay(50);
+  motor1Stop();
+  motor2Stop();
+}
+
+void turnLeftFor(int milliseconds) {
+  motor1Speed(160);
+  motor2Speed(160);
+  motor1Backward();
+  motor2Forward();
+  delay(milliseconds);
+  motor1Stop();
+  motor2Stop();
+  motor1Speed(255);
+  motor2Speed(255);
+}
+
+void turnRightFor(int milliseconds) {
+  motor1Speed(160);
+  motor2Speed(160);
+  motor1Forward();
+  motor2Backward();
+  delay(milliseconds);
+  motor1Stop();
+  motor2Stop();
+  motor1Speed(255);
+  motor2Speed(255);
+
+findFreeDirection() {
+  while (getDistanceInCm() < DISTANCE_STOP) {
+    
+  }
 }
