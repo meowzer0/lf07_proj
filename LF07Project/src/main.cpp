@@ -6,13 +6,16 @@ int currentMotor2Speed = 0;
 #pragma region Konstanten
 #define MOTOR1_SPEED 6
 #define MOTOR2_SPEED 5
-#define MOTOR1_INPUT1 9
-#define MOTOR1_INPUT2 10
+#define MOTOR1_INPUT1 2
+#define MOTOR1_INPUT2 4
 #define MOTOR2_INPUT1 7
 #define MOTOR2_INPUT2 8
-#define USS_TRIGGER 11
-#define USS_ECHO 12
-#define STATUS_LED 13
+#define USS_TRIGGER 12
+#define USS_ECHO 13
+
+#define STATUS_LED_RED 10
+#define STATUS_LED_GREEN 11
+#define STATUS_LED_BLUE 9
 
 #define BUZZER A0
 
@@ -43,8 +46,8 @@ float getDistanceInCm();
 void goForwardsFor(int milliseconds, int desiredSpeed);
 void goBackwardsFor(int milliseconds, int desiredSpeed);
 void comeToAStop();
-void turnLeftFor(int milliseconds);
-void turnRightFor(int milliseconds);
+void turnLeftFor(int milliseconds, int desiredSpeed);
+void turnRightFor(int milliseconds, int desiredSpeed);
 void findFreeDirection();
 void statusLed(int status);
 void autoSpeed(int speed);
@@ -52,12 +55,14 @@ void returnToDefaultSpeed();
 void playTone(int freq, int duration);
 void autoForward();
 void autoBackward();
+void stopTone();
+void flow1();
 #pragma endregion
 
-void flow1();
-
 void setup() {
-  pinMode(STATUS_LED, OUTPUT);
+  pinMode(STATUS_LED_RED, OUTPUT);
+  pinMode(STATUS_LED_GREEN, OUTPUT);
+  pinMode(STATUS_LED_BLUE, OUTPUT);
 
   pinMode(MOTOR1_SPEED, OUTPUT);
   pinMode(MOTOR2_SPEED, OUTPUT);
@@ -74,25 +79,24 @@ void setup() {
 }
 
 void loop() {
-  flow1();
+  // flow1();
+  motor1Speed(255);
+  motor1Forward();
 }
 
 // Ablaufversuch 1
 void flow1() {
   float distance = getDistanceInCm();
   if (distance > DISTANCE_STOP) {
+    statusLed(2);
     autoForward();
     autoSpeed(MOTOR_DEFAULT_SPEED);
   } else {
     statusLed(1);
     comeToAStop();
-    playTone(900, 300);
-    delay(100);
-    playTone(900, 300);
-    delay(100);
-    playTone(900, 300);
+    stopTone();
 
-    goBackwardsFor(400, MOTOR_SLOW_SPEED);
+    goBackwardsFor(600, MOTOR_FAST_SPEED);
     findFreeDirection();
     statusLed(0);
   }
@@ -244,6 +248,18 @@ void findFreeDirection() {
   float distance = 0.0;
   int enoughSpaceCounter = 0;
 
+  // orangene status led
+  statusLed(4);
+
+  // zufällig entscheiden ob nach links oder rechts gedreht wird
+  int direction = random(0, 2);
+  void (*randomTurnFunction)(int, int);
+  if (direction == 0) {
+    randomTurnFunction = &turnLeftFor;
+  } else {
+    randomTurnFunction = &turnRightFor;
+  } 
+
   while (!foundFreeDirection) {
     delay(50);
     distance = getDistanceInCm();
@@ -257,16 +273,56 @@ void findFreeDirection() {
     if (enoughSpaceCounter > 2) {
       foundFreeDirection = true;
     } else {
-      turnLeftFor(130, 255);
+      randomTurnFunction(130, 255);
     }
 
     delay(100);
   }
 }
 
-// weiße led auf dem arduino
+// rgb led
+// 0 = aus
+// 1 = rot
+// 2 = grün
+// 3 = blau
+// 4 = orange
 void statusLed(int status) {
-  digitalWrite(STATUS_LED, status);
+  #define BRIGHT 255
+  #define MEDIUM 150
+  #define DIM 100
+  
+  switch (status) {
+    case 0:
+      analogWrite(STATUS_LED_RED, LOW);
+      analogWrite(STATUS_LED_GREEN, LOW);
+      analogWrite(STATUS_LED_BLUE, LOW);
+      break;
+
+    case 1:
+      analogWrite(STATUS_LED_RED, BRIGHT);
+      analogWrite(STATUS_LED_GREEN, LOW);
+      analogWrite(STATUS_LED_BLUE, LOW);
+      break;
+
+    case 2:
+      analogWrite(STATUS_LED_RED, LOW);
+      analogWrite(STATUS_LED_GREEN, BRIGHT);
+      analogWrite(STATUS_LED_BLUE, LOW);
+      break;
+
+    case 3:
+      analogWrite(STATUS_LED_RED, LOW);
+      analogWrite(STATUS_LED_GREEN, LOW);
+      analogWrite(STATUS_LED_BLUE, BRIGHT);
+      break;
+
+    case 4:
+      analogWrite(STATUS_LED_RED, MEDIUM);
+      analogWrite(STATUS_LED_GREEN, DIM);
+      analogWrite(STATUS_LED_BLUE, LOW);
+      break;
+    
+  }
 }
 
 // buzzer
@@ -274,4 +330,10 @@ void playTone(int freq, int duration) {
   tone(BUZZER, freq);
   delay(duration);
   noTone(BUZZER);
+}
+
+void stopTone() {
+  playTone(900, 200);
+  delay(100);
+  playTone(600, 150);
 }
