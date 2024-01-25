@@ -6,13 +6,10 @@
 #define MOTOR1_INPUT2 10
 #define MOTOR2_INPUT1 7
 #define MOTOR2_INPUT2 8
-
-#define LED_SIGNALRED 2
-#define LED_SIGNALYELLOW 3
-#define LED_SIGNALGREEN 4
-
 #define USS_TRIGGER 11
 #define USS_ECHO 12
+
+#define STATUS_LED 13
 
 #define DISTANCE_WARNING 30
 #define DISTANCE_STOP 10
@@ -45,13 +42,12 @@ void comeToAStop();
 void turnLeftFor(int milliseconds);
 void turnRightFor(int milliseconds);
 void findFreeDirection();
+void statusLed(int status);
 
 void flow1();
 
 void setup() {
-  pinMode(LED_SIGNALRED, OUTPUT);
-  pinMode(LED_SIGNALYELLOW, OUTPUT);
-  pinMode(LED_SIGNALGREEN, OUTPUT);
+  pinMode(STATUS_LED, OUTPUT);
 
   pinMode(MOTOR1_SPEED, OUTPUT);
   pinMode(MOTOR2_SPEED, OUTPUT);
@@ -79,24 +75,12 @@ void flow1() {
     motor1Speed(255);
     motor2Speed(255);
   } else {
+    statusLed(1);
     comeToAStop();
 
     goBackwardsFor(500);
     findFreeDirection();
-  }
-
-  // Ampel
-  if (distance > DISTANCE_WARNING)
-  {
-    setSignalGreen();
-  }
-  else if (distance > DISTANCE_STOP)
-  {
-    setSignalYellow();
-  }
-  else
-  {
-    setSignalRed();
+    statusLed(0);
   }
 }
 
@@ -166,24 +150,6 @@ float getAcurateDistanceInCm() {
   return distance / 10;
 }
 
-void setSignalRed() {
-  digitalWrite(LED_SIGNALRED, HIGH);
-  digitalWrite(LED_SIGNALYELLOW, LOW);
-  digitalWrite(LED_SIGNALGREEN, LOW);
-}
-
-void setSignalYellow() {
-  digitalWrite(LED_SIGNALRED, LOW);
-  digitalWrite(LED_SIGNALYELLOW, HIGH);
-  digitalWrite(LED_SIGNALGREEN, LOW);
-}
-
-void setSignalGreen() {
-  digitalWrite(LED_SIGNALRED, LOW);
-  digitalWrite(LED_SIGNALYELLOW, LOW);
-  digitalWrite(LED_SIGNALGREEN, HIGH);
-}
-
 void turn90DegreesLeft() {
   motor1Backward();
   motor2Forward();
@@ -215,23 +181,18 @@ void goBackwardsFor(int milliseconds) {
 }
 
 void comeToAStop() {
-  motor1Speed(128);
-  motor2Speed(128);
-  delay(50);
   motor1Stop();
   motor2Stop();
 }
 
 void turnLeftFor(int milliseconds) {
-  motor1Speed(190);
-  motor2Speed(190);
+  motor1Speed(255);
+  motor2Speed(255);
   motor1Backward();
   motor2Forward();
   delay(milliseconds);
   motor1Stop();
   motor2Stop();
-  motor1Speed(255);
-  motor2Speed(255);
 }
 
 void turnRightFor(int milliseconds) {
@@ -268,4 +229,8 @@ void findFreeDirection() {
 
     delay(200);
   }
+}
+
+void statusLed(int status) {
+  digitalWrite(STATUS_LED, status);
 }
