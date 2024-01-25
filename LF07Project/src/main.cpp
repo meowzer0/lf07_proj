@@ -31,9 +31,6 @@ void motor2Backward();
 void motor2Stop();
 void motor1Speed(int speed);
 void motor2Speed(int speed);
-void setSignalRed();
-void setSignalYellow();
-void setSignalGreen();
 float getDistanceInCm();
 void turn90DegreesLeft();
 void goForwardsFor(int milliseconds);
@@ -141,15 +138,6 @@ float getDistanceInCm() {
   return distance;
 }
 
-float getAcurateDistanceInCm() {
-  float distance = 0.0;
-  for (int i = 0; i < 10; i++) {
-    distance += getDistanceInCm();
-  }
-
-  return distance / 10;
-}
-
 void turn90DegreesLeft() {
   motor1Backward();
   motor2Forward();
@@ -213,7 +201,7 @@ void findFreeDirection() {
   int enoughSpaceCounter = 0;
 
   while (!foundFreeDirection) {
-    distance = getAcurateDistanceInCm();
+    distance = getDistanceInCm();
 
     if (distance > DISTANCE_WARNING) {
       enoughSpaceCounter++;
