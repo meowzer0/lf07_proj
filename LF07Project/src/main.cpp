@@ -13,6 +13,7 @@
 
 #define DISTANCE_WARNING 30
 #define DISTANCE_STOP 10
+#define DISTANCE_GOAGAIN 18
 
 #define TURN_TIME 240
 #define WAIT_AFTER_TURN 500
@@ -61,13 +62,10 @@ void setup() {
 }
 
 void loop() {
-  statusLed(1);
-  delay(2000);
-  statusLed(0);
-  delay(2000);
-  // flow1();
+  flow1();
 }
 
+// Ablaufversuch 1
 void flow1() {
   float distance = getDistanceInCm();
   if (distance > DISTANCE_STOP) {
@@ -85,31 +83,38 @@ void flow1() {
   }
 }
 
+// Fährt den Motor1 vorwärts
 void motor1Forward() {
   digitalWrite(MOTOR1_INPUT1, HIGH);
   digitalWrite(MOTOR1_INPUT2, LOW);
 }
 
+// Fährt den Motor1 rückwärts
 void motor1Backward() {
   digitalWrite(MOTOR1_INPUT1, LOW);
   digitalWrite(MOTOR1_INPUT2, HIGH);
 }
 
+// Stoppt den Motor1
 void motor1Stop() {
   digitalWrite(MOTOR1_INPUT1, LOW);
   digitalWrite(MOTOR1_INPUT2, LOW);
 }
 
+// Fährt den Motor2 vorwärts
 void motor2Forward() {
   digitalWrite(MOTOR2_INPUT1, HIGH);
   digitalWrite(MOTOR2_INPUT2, LOW);
 }
 
+
+// Fährt den Motor2 rückwärts
 void motor2Backward() {
   digitalWrite(MOTOR2_INPUT1, LOW);
   digitalWrite(MOTOR2_INPUT2, HIGH);
 }
 
+// Stoppt den Motor2
 void motor2Stop() {
   digitalWrite(MOTOR2_INPUT1, LOW);
   digitalWrite(MOTOR2_INPUT2, LOW);
@@ -129,6 +134,7 @@ void motor2Speed(int speed) {
   }
 }
 
+// Gibt die Entfernung in cm zurück
 float getDistanceInCm() {
   digitalWrite(USS_TRIGGER, LOW);
   delayMicroseconds(2);
@@ -142,6 +148,8 @@ float getDistanceInCm() {
   return distance;
 }
 
+
+// Dreht sich um 90 Grad nach links
 void turn90DegreesLeft() {
   motor1Backward();
   motor2Forward();
@@ -152,6 +160,7 @@ void turn90DegreesLeft() {
   motor2Stop();
 }
 
+// Fährt für eine bestimmte Zeit vorwärts
 void goForwardsFor(int milliseconds) {
   motor1Forward();
   motor2Forward();
@@ -162,6 +171,7 @@ void goForwardsFor(int milliseconds) {
   motor2Stop();
 }
 
+// Fährt für eine bestimmte Zeit rückwärts
 void goBackwardsFor(int milliseconds) {
   motor1Backward();
   motor2Backward();
@@ -172,11 +182,13 @@ void goBackwardsFor(int milliseconds) {
   motor2Stop();
 }
 
+// Stoppt das Auto
 void comeToAStop() {
   motor1Stop();
   motor2Stop();
 }
 
+// Dreht sich für eine bestimmte Zeit nach links
 void turnLeftFor(int milliseconds) {
   motor1Speed(255);
   motor2Speed(255);
@@ -187,6 +199,7 @@ void turnLeftFor(int milliseconds) {
   motor2Stop();
 }
 
+// Dreht sich für eine bestimmte Zeit nach rechts
 void turnRightFor(int milliseconds) {
   motor1Speed(160);
   motor2Speed(160);
@@ -199,6 +212,7 @@ void turnRightFor(int milliseconds) {
   motor2Speed(255);
 }
 
+// Dreht sich nach links, bis es wieder genug Platz hat
 void findFreeDirection() {
   bool foundFreeDirection = false;
   float distance = 0.0;
@@ -207,7 +221,7 @@ void findFreeDirection() {
   while (!foundFreeDirection) {
     distance = getDistanceInCm();
 
-    if (distance > DISTANCE_WARNING) {
+    if (distance > DISTANCE_GOAGAIN) {
       enoughSpaceCounter++;
     } else {
       enoughSpaceCounter = 0;
