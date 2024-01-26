@@ -1,8 +1,13 @@
+// Abgabe LF07 Projektarbeit Patrick Pfaff 11IT2
+// Code mit Historie auch in meinem GitHub-Repository: https://github.com/meowzer0/lf07_proj/blob/main/LF07Project/src/main.cpp
+//
+
 #include <Arduino.h>
 
 int currentMotor1Speed = 0;
 int currentMotor2Speed = 0;
 int celebrationCounter = 0;
+
 // buffer für linker und rechter sensor
 float distances[2];
 unsigned long millisAtMovementStart = 0;
@@ -76,6 +81,7 @@ void level2celebration();
 void level3celebration();
 void playNokiaTone();
 bool noObstacleInFront();
+void autoSpeedCorrected(int speed);
 #pragma endregion
 
 void setup() {
@@ -119,7 +125,7 @@ void flow1() {
 
   if (noObstacleInFront()) {
     statusLed(2);
-    autoSpeed(MOTOR_DEFAULT_SPEED);
+    autoSpeedCorrected(MOTOR_DEFAULT_SPEED);
     autoForward();
   } else {
     statusLed(1);
@@ -170,6 +176,16 @@ void motor2Stop() {
 void autoSpeed(int speed) {
   motor1Speed(speed);
   motor2Speed(speed);
+}
+
+// Fährt mit korrektur für den linksdrall
+void autoSpeedCorrected(int speed) {
+  int calcSpeedLeft = speed;
+  int calcSpeedRight = speed - 20;
+
+  if (calcSpeedRight < 0 ) calcSpeedRight = 0;
+  motor1Speed(calcSpeedLeft);
+  motor2Speed(calcSpeedRight);
 }
 
 // Fährt vorwärts
@@ -312,6 +328,8 @@ void findFreeDirection() {
     }
     if (enoughSpaceCounter > 1) foundFreeDirection = true;
   }
+
+  statusLed(0);
 }
 
 // rgb led
@@ -439,15 +457,15 @@ void checkForCelebration() {
   Serial.println(timeElapsed - millisAtMovementStart);
 
   // Zeit vor dem Fahren soll nicht mitgezählt werden
-  if (timeElapsed > 10000  + millisAtMovementStart && celebrationCounter < 1) {
+  if (timeElapsed > 15000  + millisAtMovementStart && celebrationCounter < 1) {
     celebration(0);
     celebrationCounter++;
   }
-  else if (timeElapsed > 20000  + millisAtMovementStart && celebrationCounter < 2) {
+  else if (timeElapsed > 25000  + millisAtMovementStart && celebrationCounter < 2) {
     celebration(1);
     celebrationCounter++;
   } 
-  else if (timeElapsed > 30000 + millisAtMovementStart && celebrationCounter < 3) {
+  else if (timeElapsed > 35000 + millisAtMovementStart && celebrationCounter < 3) {
     celebration(2);
     celebrationCounter++;
   }
