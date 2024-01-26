@@ -3,7 +3,10 @@
 int currentMotor1Speed = 0;
 int currentMotor2Speed = 0;
 int celebrationCounter = 0;
-int millisAtMovementStart = 0;
+// buffer für linker und rechter sensor
+float distances[2];
+unsigned long millisAtMovementStart = 0;
+bool movementStarted = false;
 
 #pragma region Konstanten
 #define MOTOR1_SPEED 6
@@ -12,8 +15,10 @@ int millisAtMovementStart = 0;
 #define MOTOR1_INPUT2 4
 #define MOTOR2_INPUT1 7
 #define MOTOR2_INPUT2 8
-#define USS_TRIGGER 12
-#define USS_ECHO 13
+#define USS1_TRIGGER A3
+#define USS1_ECHO A4
+#define USS2_TRIGGER 12
+#define USS2_ECHO 13
 
 #define STATUS_LED_RED 10
 #define STATUS_LED_GREEN 11
@@ -46,7 +51,7 @@ void motor2Backward();
 void motor2Stop();
 void motor1Speed(int speed);
 void motor2Speed(int speed);
-float getDistanceInCm();
+void updateDistances();
 void goForwardsFor(int milliseconds, int desiredSpeed);
 void goBackwardsFor(int milliseconds, int desiredSpeed);
 void comeToAStop();
@@ -87,8 +92,11 @@ void setup() {
   pinMode(MOTOR2_INPUT1, OUTPUT);
   pinMode(MOTOR2_INPUT2, OUTPUT);
 
-  pinMode(USS_TRIGGER, OUTPUT);
-  pinMode(USS_ECHO, INPUT);
+  pinMode(USS1_TRIGGER, OUTPUT);
+  pinMode(USS1_ECHO, INPUT);
+
+  pinMode(USS2_TRIGGER, OUTPUT);
+  pinMode(USS2_ECHO, INPUT);
 
   motor1Speed(MOTOR_DEFAULT_SPEED);
   motor2Speed(MOTOR_DEFAULT_SPEED);
@@ -99,26 +107,33 @@ void setup() {
 }
 
 void loop() {
-  flow1();
+  // flow1();
+
+  updateDistances();
+  Serial.println(distances[0]);
+  Serial.println(distances[1]);
+  delay(1000);
 }
 
 // Ablaufversuch 1
 void flow1() {
   checkForCelebration();
-  float distance = getDistanceInCm();
-  if (distance > DISTANCE_STOP) {
-    statusLed(2);
-    autoForward();
-    autoSpeed(MOTOR_DEFAULT_SPEED);
-  } else {
-    statusLed(1);
-    comeToAStop();
-    stopTone();
+  updateDistances();
 
-    goBackwardsFor(600, MOTOR_FAST_SPEED);
-    findFreeDirection();
-    statusLed(0);
-  }
+
+  // if (distance > DISTANCE_STOP) {
+  //   statusLed(2);
+  //   autoForward();
+  //   autoSpeed(MOTOR_DEFAULT_SPEED);
+  // } else {
+  //   statusLed(1);
+  //   comeToAStop();
+  //   stopTone();
+
+  //   goBackwardsFor(600, MOTOR_FAST_SPEED);
+  //   findFreeDirection();
+  //   statusLed(0);
+  // }
 }
 
 // Fährt den Motor1 vorwärts
@@ -195,17 +210,32 @@ void returnToDefaultSpeed() {
 }
 
 // Gibt die Entfernung in cm zurück
-float getDistanceInCm() {
-  digitalWrite(USS_TRIGGER, LOW);
+void updateDistances() {
+  int duration;
+  float distance;
+
+  // linker sensor
+  digitalWrite(USS1_TRIGGER, LOW);
   delayMicroseconds(2);
-  digitalWrite(USS_TRIGGER, HIGH);
+  digitalWrite(USS1_TRIGGER, HIGH);
   delayMicroseconds(10);
-  digitalWrite(USS_TRIGGER, LOW);
+  digitalWrite(USS1_TRIGGER, LOW);
+  duration = pulseIn(USS1_ECHO, HIGH);
+  distance = ( duration / 29.0 ) / 2.0;
 
-  float duration = pulseIn(USS_ECHO, HIGH);
-  float distance = ( duration / 29 ) / 2;
+  distances[0] = distance;
 
-  return distance;
+  // rechter sensor
+  digitalWrite(USS2_TRIGGER, LOW);
+  delayMicroseconds(2);
+  digitalWrite(USS2_TRIGGER, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(USS2_TRIGGER, LOW);
+
+  duration = pulseIn(USS2_ECHO, HIGH);
+  distance = ( duration / 29 ) / 2;
+
+  distances[1] = distance;
 }
 
 // Fährt für eine bestimmte Zeit vorwärts
@@ -264,11 +294,10 @@ void turnRightFor(int milliseconds, int desiredSpeed) {
 // Dreht sich nach links, bis es wieder genug Platz hat
 void findFreeDirection() {
   bool foundFreeDirection = false;
-  float distance = 0.0;
   int enoughSpaceCounter = 0;
 
   // orangene status led
-  statusLed(4);
+  statusLed(2);
 
   // zufällig entscheiden ob nach links oder rechts gedreht wird
   int direction = random(0, 2);
@@ -279,24 +308,24 @@ void findFreeDirection() {
     randomTurnFunction = &turnRightFor;
   } 
 
-  while (!foundFreeDirection) {
-    delay(50);
-    distance = getDistanceInCm();
+  // while (!foundFreeDirection) {
+  //   delay(50);
+  //   updateDistances();
 
-    if (distance > DISTANCE_GOAGAIN) {
-      enoughSpaceCounter++;
-    } else {
-      enoughSpaceCounter = 0;
-    }
+  //   if (distance > DISTANCE_GOAGAIN) {
+  //     enoughSpaceCounter++;
+  //   } else {
+  //     enoughSpaceCounter = 0;
+  //   }
 
-    if (enoughSpaceCounter > 2) {
-      foundFreeDirection = true;
-    } else {
-      randomTurnFunction(130, 255);
-    }
+  //   if (enoughSpaceCounter > 2) {
+  //     foundFreeDirection = true;
+  //   } else {
+  //     randomTurnFunction(130, 255);
+  //   }
 
-    delay(100);
-  }
+  //   delay(100);
+  // }
 }
 
 // rgb led
@@ -395,6 +424,14 @@ void waitForStartButton() {
       startButtonPressed = true;
     }
   }
+
+  // Damit die Zeit, die für die celebration gebraucht wird, nicht mitgezählt wird wenn das auto noch nicht fährt
+  if (!movementStarted)
+  {
+    movementStarted = true;
+    millisAtMovementStart = millis();
+  }
+
   statusLed(0);
 }
 
@@ -407,18 +444,22 @@ void stopAutoOnInterrupt() {
 }
 
 void checkForCelebration() {
-  int timeElapsed = millis();
+  unsigned long timeElapsed = millis();
+  Serial.print("Time since arduino started: ");
   Serial.println(timeElapsed);
+  Serial.print("Time since movement started: ");
+  Serial.println(timeElapsed - millisAtMovementStart);
 
-  if (timeElapsed > 10000 && celebrationCounter < 1) {
+  // Zeit vor dem Fahren soll nicht mitgezählt werden
+  if (timeElapsed > 10000  + millisAtMovementStart && celebrationCounter < 1) {
     celebration(0);
     celebrationCounter++;
   }
-  else if (timeElapsed > 20000 && celebrationCounter < 2) {
+  else if (timeElapsed > 20000  + millisAtMovementStart && celebrationCounter < 2) {
     celebration(1);
     celebrationCounter++;
   } 
-  else if (timeElapsed > 30000) {
+  else if (timeElapsed > 30000 + millisAtMovementStart) {
     celebration(2);
     celebrationCounter++;
   }
@@ -482,6 +523,19 @@ void level3celebration() {
   }
 }
 
+bool noObstacleInFront() {
+  bool obstacleInFront = false;
+  updateDistances();
+
+  if (distances[0] < DISTANCE_STOP || distances[1] < DISTANCE_STOP) {
+    obstacleInFront = true;
+  }
+
+  return !obstacleInFront;
+}
+
+// Noten kommen aus dem Internet:
+// https://github.com/robsoncouto/arduino-songs/tree/master/nokia
 void playNokiaTone() {
   /* 
   Nokia Tune
