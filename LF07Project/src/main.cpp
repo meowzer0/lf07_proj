@@ -7,6 +7,7 @@ int celebrationCounter = 0;
 float distances[2];
 unsigned long millisAtMovementStart = 0;
 bool movementStarted = false;
+bool celebrationsDone = false;
 
 #pragma region Konstanten
 #define MOTOR1_SPEED 6
@@ -32,8 +33,8 @@ bool movementStarted = false;
 #define MOTOR_SLOW_SPEED 110
 #define MOTOR_FAST_SPEED 230
 
-#define DISTANCE_STOP 15
-#define DISTANCE_GOAGAIN 15
+#define DISTANCE_STOP 20
+#define DISTANCE_GOAGAIN 20
 
 #define TURN_TIME 240
 #define WAIT_AFTER_TURN 500
@@ -74,6 +75,7 @@ void level1celebration();
 void level2celebration();
 void level3celebration();
 void playNokiaTone();
+bool noObstacleInFront();
 #pragma endregion
 
 void setup() {
@@ -107,12 +109,7 @@ void setup() {
 }
 
 void loop() {
-  // flow1();
-
-  updateDistances();
-  Serial.println(distances[0]);
-  Serial.println(distances[1]);
-  delay(1000);
+  flow1();
 }
 
 // Ablaufversuch 1
@@ -120,20 +117,17 @@ void flow1() {
   checkForCelebration();
   updateDistances();
 
-
-  // if (distance > DISTANCE_STOP) {
-  //   statusLed(2);
-  //   autoForward();
-  //   autoSpeed(MOTOR_DEFAULT_SPEED);
-  // } else {
-  //   statusLed(1);
-  //   comeToAStop();
-  //   stopTone();
-
-  //   goBackwardsFor(600, MOTOR_FAST_SPEED);
-  //   findFreeDirection();
-  //   statusLed(0);
-  // }
+  if (noObstacleInFront()) {
+    statusLed(2);
+    autoSpeed(MOTOR_DEFAULT_SPEED);
+    autoForward();
+  } else {
+    statusLed(1);
+    comeToAStop();
+    goBackwardsFor(500, MOTOR_DEFAULT_SPEED);
+    findFreeDirection();
+    statusLed(0);
+  }
 }
 
 // Fährt den Motor1 vorwärts
@@ -308,24 +302,16 @@ void findFreeDirection() {
     randomTurnFunction = &turnRightFor;
   } 
 
-  // while (!foundFreeDirection) {
-  //   delay(50);
-  //   updateDistances();
-
-  //   if (distance > DISTANCE_GOAGAIN) {
-  //     enoughSpaceCounter++;
-  //   } else {
-  //     enoughSpaceCounter = 0;
-  //   }
-
-  //   if (enoughSpaceCounter > 2) {
-  //     foundFreeDirection = true;
-  //   } else {
-  //     randomTurnFunction(130, 255);
-  //   }
-
-  //   delay(100);
-  // }
+  while (!foundFreeDirection) {
+    randomTurnFunction(200, MOTOR_DEFAULT_SPEED);
+    delay(150);    
+    if (noObstacleInFront()) {
+      enoughSpaceCounter++;
+    } else {
+      enoughSpaceCounter = 0;
+    }
+    if (enoughSpaceCounter > 1) foundFreeDirection = true;
+  }
 }
 
 // rgb led
@@ -444,6 +430,8 @@ void stopAutoOnInterrupt() {
 }
 
 void checkForCelebration() {
+  if (celebrationsDone) return;
+
   unsigned long timeElapsed = millis();
   Serial.print("Time since arduino started: ");
   Serial.println(timeElapsed);
@@ -459,7 +447,7 @@ void checkForCelebration() {
     celebration(1);
     celebrationCounter++;
   } 
-  else if (timeElapsed > 30000 + millisAtMovementStart) {
+  else if (timeElapsed > 30000 + millisAtMovementStart && celebrationCounter < 3) {
     celebration(2);
     celebrationCounter++;
   }
@@ -510,10 +498,12 @@ void level3celebration() {
   }
   for (int i = 0; i < 4; i++) {
     turnLeftFor(800, 255);
+    statusLed(random(0, 8));
     delay(200);
   }
   for (int i = 0; i < 4; i++) {
     turnRightFor(800, 255);
+    statusLed(random(0, 8));
     delay(200);
   }
   turnLeftFor(2000, 255);
@@ -521,6 +511,8 @@ void level3celebration() {
       statusLed(i);
       delay(100);
   }
+
+  celebrationsDone = true;
 }
 
 bool noObstacleInFront() {
