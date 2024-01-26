@@ -1,6 +1,5 @@
 // Abgabe LF07 Projektarbeit Patrick Pfaff 11IT2
 // Code mit Historie auch in meinem GitHub-Repository: https://github.com/meowzer0/lf07_proj/blob/main/LF07Project/src/main.cpp
-//
 
 #include <Arduino.h>
 
@@ -8,7 +7,7 @@ int currentMotor1Speed = 0;
 int currentMotor2Speed = 0;
 int celebrationCounter = 0;
 
-// buffer für linker und rechter sensor
+// buffer für linken und rechten sensor
 float distances[2];
 unsigned long millisAtMovementStart = 0;
 bool movementStarted = false;
