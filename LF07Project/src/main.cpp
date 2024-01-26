@@ -1,6 +1,8 @@
 // Abgabe LF07 Projektarbeit Patrick Pfaff 11IT2
-// Code mit Historie auch in meinem GitHub-Repository: https://github.com/meowzer0/lf07_proj/blob/main/LF07Project/src/main.cpp
+// Codestruktur wird leicht von einer .ino Datei abweichen, da ich mir eine Umgebung mit PlatformIO und VSCode aufgesetzt habe,
+// diese verwendet einen anderen Compiler, so müssen hier z.B. die Funktionsdeklarationen vor den Funktionsdefinitionen stehen
 
+// Code mit Historie auch in meinem GitHub-Repository: https://github.com/meowzer0/lf07_proj/blob/main/LF07Project/src/main.cpp
 #include <Arduino.h>
 
 int currentMotor1Speed = 0;
